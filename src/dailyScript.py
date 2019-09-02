@@ -38,7 +38,7 @@ def updateDisplay():
 
 def updateJobs(user, job, jobs, idx):
     """
-    def updateJobs(user, job, jobs, idx):
+    Updates the next occurance of the job in mongo
     """
     nextOccurance = job['frequency'] * 3600 + int(time.time())
     newJob = copy.deepcopy(job)
