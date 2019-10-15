@@ -1,13 +1,26 @@
-import pymongo
 import schedule
+import threading
 import time
 import copy
 import PySimpleGUI as sg
+import json
 import frontEnd
 
-client = pymongo.MongoClient('localhost', 27017)
-db = client.roommate
 fe = frontEnd.fe()
+fn = 'users.json'
+data = {}
+with open(fn) as f:
+    data = json.load(f)
+
+
+def loadData():
+    with open(fn) as f:
+        data = json.load(f)
+
+
+def writeData():
+    with open(fn, 'w') as f:
+        json.dump(data, f)
 
 
 def updateDisplay():
@@ -15,42 +28,43 @@ def updateDisplay():
     Main funcion called periodically
     Grabs current jobs from the db and updates FE and DB
     """
+    fe.close()
     epochTime = int(time.time())
+    print(epochTime)
     feRows = list()
-    for user in db.users.find():
+    for name, user in data.items():
         print(user)
+        print(name)
         jobs = list()
         try:
-            jobs = user['jobs']
+            jobs = user['Jobs']
         except:
             print("User has no jobs")
         for idx in range(len(jobs)):
             job = jobs[idx]
-            if(job['nextOccurance'] >= epochTime):
+            if(job['nextOccurance'] <= epochTime):
                 # TODO: Put it on the FE table
-                rowText = [user['name'], job['name']]
+                rowText = [name, job['name']]
                 row = [sg.Text(t, size=(16, 2)) for t in rowText]
                 feRows.append(row)
                 # Update the next time in the db
-                updateJobs(user, job, user['jobs'], idx)
+                updateJobs(name, user, job, user['Jobs'], idx)
     fe.renderGUI(feRows)
 
 
-def updateJobs(user, job, jobs, idx):
+def updateJobs(name, user, job, jobs, idx):
     """
     Updates the next occurance of the job in mongo
     """
-    nextOccurance = job['frequency'] * 3600 + int(time.time())
+    nextOccurance = job['frequency'] * 3600 * 24 + int(time.time())
     newJob = copy.deepcopy(job)
     newJob['nextOccurance'] = nextOccurance
     newJobs = copy.deepcopy(jobs)
     newJobs[idx] = newJob
-    db.users.update_one(filter={'_id': user['_id']}, update={
-        '$set': {'jobs': newJobs}})
+    data[name]['Jobs'] = newJobs
 
 
-updateDisplay()
-schedule.every().day.at('01:00').do(updateDisplay)
+schedule.every(7).days.do(updateDisplay)
 while True:
     schedule.run_pending()
     time.sleep(60)

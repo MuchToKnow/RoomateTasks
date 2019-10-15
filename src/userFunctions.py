@@ -1,18 +1,32 @@
-import pymongo
 import time
 import sys
-client = pymongo.MongoClient('localhost', 27017)
-db = client.roommate
+import json
+fn = 'users.json'
 
 
 class adminTools:
+    data = {}
+
+    def __init__(self):
+        self.load()
+        print(self.data)
+
+    def load(self):
+        with open(fn) as f:
+            self.data = json.load(f)
+
+    def write(self):
+        with open(fn, 'w') as f:
+            json.dump(self.data, f)
 
     def addUser(self, name):
-        db.users.insert_one(document={'name': name})
+        self.load()
+        self.data[name] = {"Jobs": []}
+        self.write()
 
-    def addJob(self, name):
-        user = db.users.find_one(filter={'name': name})
-        name = input("Give a name for the job\n")
+    def addJob(self):
+        self.load()
+        job = input("Give a name for the job\n")
         frequency = 7
         try:
             frequency = int(input(
@@ -20,18 +34,24 @@ class adminTools:
         except:
             print("Please input an integer")
             sys.exit(1)
-        newJob = dict()
-        newJob['name'] = name
-        newJob['frequency'] = frequency
-        # TODO: Add time picker for start date
-        newJob['nextOccurance'] = int(time.time()) + frequency*3600
-        try:
-            jobs = user['jobs']
-            jobs.append(newJob)
-            db.users.update_one(filter={'_id': user['_id']}, update={
-                                '$set': {'jobs': jobs}})
-        except KeyError:
-            jobs = list()
-            jobs.append(newJob)
-            db.users.update_one(filter={'_id': user['_id']}, update={
-                '$set': {'jobs': jobs}})
+        for i in self.data:
+            newJob = dict()
+            newJob['name'] = job
+            newJob['frequency'] = frequency
+            start = 0
+            try:
+                start = int(input(
+                    "How many days from now does the job start? for " + i + "\n"
+                ))
+            except:
+                print("Please input an integer")
+                sys.exit(1)
+            newJob['nextOccurance'] = int(time.time()) + start*3600*24
+            try:
+                self.data[i]['Jobs'].append(newJob)
+                self.write()
+            except KeyError:
+                jobs = list()
+                jobs.append(newJob)
+                self.data[i]['Jobs'] = jobs
+                self.write()
