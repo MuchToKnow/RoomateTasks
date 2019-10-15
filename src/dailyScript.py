@@ -49,6 +49,7 @@ def updateDisplay():
                 feRows.append(row)
                 # Update the next time in the db
                 updateJobs(name, user, job, user['Jobs'], idx)
+    writeData()
     fe.renderGUI(feRows)
 
 
@@ -56,6 +57,7 @@ def updateJobs(name, user, job, jobs, idx):
     """
     Updates the next occurance of the job in mongo
     """
+    global data
     nextOccurance = job['frequency'] * 3600 * 24 + int(time.time())
     newJob = copy.deepcopy(job)
     newJob['nextOccurance'] = nextOccurance
@@ -64,6 +66,7 @@ def updateJobs(name, user, job, jobs, idx):
     data[name]['Jobs'] = newJobs
 
 
+updateDisplay()
 schedule.every(7).days.do(updateDisplay)
 while True:
     schedule.run_pending()
